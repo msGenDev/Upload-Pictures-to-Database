@@ -1,0 +1,150 @@
+Index.php :
+
+
+<html>
+	<head>
+		<title>Upload Picture to Database</title>
+		<link rel="stylesheet" type="text/css" href="style.css">
+		<link rel="icon" type="image/png" href="fav.png">
+		<script>
+			function process(){
+
+				var xmlhttp=new XMLHttpRequest();
+				xmlhttp.onreadystatechange=function(){
+					if(xmlhttp.readyState==4 && xmlhttp.status==200){
+						document.getElementById("shopList").innerHTML=xmlhttp.responseText;
+					}
+				}
+				xmlhttp.open("GET","loadList.php",true);
+				xmlhttp.send();	
+			}
+		</script>
+		<script type="text/javascript" src="jquery/jquery.js"></script>
+		<script type="text/javascript" src="abling.js"></script>		
+	</head>
+	<body onload="process()">
+
+				<h1>Upload Picture to Database</h1>
+				<p>Developed using PHP, JavaScript, jQuery & MySQL</p>
+
+				<form name="Image" id="browse" enctype="multipart/form-data" action="upload.php" method="POST">
+					<input type="file" name="Photo" size="2000000" accept="image/gif, image/jpeg, image/x-ms-bmp, image/x-png" size="26"><br/>
+					<label>Name this picture! : </label><input name="newName" id="newName" ><br/>
+					<INPUT type="submit" id="subm" class="button" name="Submit" value="  Submit  " disabled="disabled"> &nbsp;&nbsp;
+					<INPUT type="reset" class="button" value="Cancel"><br/>
+				</form>		
+				
+				<div id="shopList"></div>					
+
+	</body>
+</html>
+
+
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+
+upload.php copies the picture file from source directory to destination directory, and uploads the picture's location into the database :
+
+
+<?php
+	header('Content-type: image/jpeg');
+	session_start();
+	require("connect.php");
+
+	$uploadDir = 'pic/'; //Image Upload Folder
+	if(isset($_POST['Submit'])){
+	
+		$new_name="someone";
+		
+		if( isset($_POST['newName']) ){
+			$new_name=mysql_real_escape_string ( strip_tags( $_POST['newName'] ) );
+		}
+	
+		$fileName = $_FILES['Photo']['name'];
+		$tmpName  = $_FILES['Photo']['tmp_name'];
+		$fileSize = $_FILES['Photo']['size'];
+		$fileType = $_FILES['Photo']['type'];
+		$filePath = $uploadDir . $fileName;			
+			
+		$result = move_uploaded_file($tmpName, $filePath);
+		if (!$result) {			
+			echo "Error uploading file";
+		exit;
+		}
+		if(!get_magic_quotes_gpc()){
+			$fileName = addslashes($fileName);
+			$filePath = addslashes($filePath);
+		}
+
+		$image = imagecreatefrompng($filePath);
+		imagepng($image, $filePath);
+
+		
+		$query = "INSERT INTO example.products ( Pid, Pname, Powner, Ppic ) VALUES ('7', '$new_name', 'me', '$filePath')";
+		mysql_query($query) or die('Error, query failed'); 
+	
+
+		
+		header("location: index.php"); exit();
+	}
+	
+?>
+
+
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+
+connect.php connects to the database :
+
+
+<?php
+if ( !@mysql_connect('localhost', 'root', '') || !@mysql_select_db(example) ){
+	die('Cannot connect');
+}
+?>
+
+
+
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+
+
+loadList.php re-displays the uploaded pictures to the webpage :
+
+<?php
+include'connect.php';
+header('Content-type: image/jpeg');
+echo '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>';
+echo '<response>';
+$sql="SELECT * FROM example.products";
+$query=mysql_query($sql);
+while($row=mysql_fetch_array($query)){
+	$image=$row ['Ppic'];
+	echo '<ul style="list-style-type:none;display: inline-block;">';
+	echo '<li id="loadList">';
+	echo '<img src="'.$image.'" width="150px" height="80px"/>';
+	echo '</li>';
+	echo '</ul>';
+}
+echo '</response>';
+?>
+
+
+--------------------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------------
+
+
+abling.js controls the behaviour of the buttons on the upload form :
+
+
+$(document).ready(function(){
+	$('#browse').change(function(){
+		$('#subm').removeAttr('disabled');
+	});
+});   
+
+
+
+
+
+
